@@ -1,0 +1,7 @@
+{
+    "name": "com.yoshey.stablediffusion-webui-integration",
+    "displayName": "Stable Diffusion WebUI Integration",
+    "version": "0.0.1",
+    "unity": "2021.3",
+    "description": "Stable Diffusion WebUI Integration for Unity",
+}
