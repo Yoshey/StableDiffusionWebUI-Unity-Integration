@@ -16,8 +16,8 @@ namespace StableDiffusion
 
         [Space(10)]
 
-        [Tooltip("By default, the stable diffusion image is imported upside down. Enable this to automatically rotate imported images by 180° so they are oriented correctly in unity space")]
-        [SerializeField] public bool fixRotation = true;
+        //[Tooltip("By default, the stable diffusion image is imported upside down. Enable this to automatically rotate imported images by 180° so they are oriented correctly in unity space")]
+        //[SerializeField] public bool fixRotation = true;
         
 
         //WIP
@@ -42,6 +42,12 @@ namespace StableDiffusion
 
         private void OnValidate()
         {
+            Awake();
+        }
+
+        private void Reset()
+        {
+            instance = null;
             Awake();
         }
 

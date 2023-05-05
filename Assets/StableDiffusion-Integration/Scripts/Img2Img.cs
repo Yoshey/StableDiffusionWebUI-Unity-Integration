@@ -1,5 +1,4 @@
-//Communicates to an installation of AUTOMATIC1111's Stable Diffusion WebUI API to generate images via text in Unity.
-
+//Communicates to an installation of AUTOMATIC1111's Stable Diffusion WebUI API to generate images via images in Unity.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -7,15 +6,15 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System;
 using NaughtyAttributes;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace StableDiffusion
 {
-    public class Txt2Img : MonoBehaviour
+    public class Img2Img : MonoBehaviour
     {
-        [SerializeField, Label("Txt2img Input")] 
-        private Txt2ImgPayload txt2imgInput = new Txt2ImgPayload();
+        [SerializeField, Label("Img2img Input")]
+        private Img2ImgPayload img2imgInput = new Img2ImgPayload();
 
         [Space(10)]
         public bool useRenderers = true;
@@ -26,36 +25,40 @@ namespace StableDiffusion
         [ShowIf("useEvents"), SerializeField]
         private UnityEventTexture2D[] ResponseEvents;
 
-        
-
         #region Functions
         //Generate images via the instance's inspector settings
         public void GenerateImages()
         {
-            GenerateImages(txt2imgInput);
+            GenerateImages(img2imgInput);
+        }
+
+        public void GenerateImages(Texture2D image)
+        {
+            img2imgInput.images = new Texture2D[] { image };
+            GenerateImages();
         }
 
         //overloaded method to allow generating images with different inputs
-        public void GenerateImages(Txt2ImgPayload txt2imgInput)
+        public void GenerateImages(Img2ImgPayload img2imgInput)
         {
-            StartCoroutine(GenerateImagesCoroutine(txt2imgInput, useRenderers? targetRenderers : null, useEvents? ResponseEvents : null));
+            StartCoroutine(GenerateImagesCoroutine(img2imgInput, useRenderers ? targetRenderers : null, useEvents ? ResponseEvents : null));
         }
 
         //Overload for UnityEventTexture2d's only
-        public static IEnumerator GenerateImagesCoroutine(Txt2ImgPayload txt2imgInput, UnityEventTexture2D[] responseEvents)
+        public static IEnumerator GenerateImagesCoroutine(Img2ImgPayload img2imgInput, UnityEventTexture2D[] responseEvents)
         {
-            GenerateImagesCoroutine(txt2imgInput, null, responseEvents);
+            GenerateImagesCoroutine(img2imgInput, null, responseEvents);
             yield return null;
         }
 
         //Overload for renderers only
-        public static IEnumerator GenerateImagesCoroutine(Txt2ImgPayload txt2imgInput, Renderer[] renderers)
+        public static IEnumerator GenerateImagesCoroutine(Img2ImgPayload img2imgInput, Renderer[] renderers)
         {
-            GenerateImagesCoroutine(txt2imgInput, renderers, null);
+            GenerateImagesCoroutine(img2imgInput, renderers, null);
             yield return null;
         }
 
-        public static IEnumerator GenerateImagesCoroutine(Txt2ImgPayload txt2imgInput, Renderer[] renderers, UnityEventTexture2D[] responseEvents)
+        public static IEnumerator GenerateImagesCoroutine(Img2ImgPayload img2imgInput, Renderer[] renderers, UnityEventTexture2D[] responseEvents)
         {
             if (StableDiffusionConfig.instance == null)
             {
@@ -86,9 +89,8 @@ namespace StableDiffusion
                         Debug.LogError("SD: Tried to generate images without providing an output to apply the textures to!");
                         yield return null;
                     }
-                        
 
-                    txt2imgInput.Initialize(); //update hidden values to their true values
+                    img2imgInput.Initialize();
                     Texture2D[] textures = new Texture2D[0];
 
                     //Send request to server to generate a stable diffusion image
@@ -98,48 +100,46 @@ namespace StableDiffusion
                     //however, "For some reason UnityWebRequest applies URL encoding to POST message payloads." as seen here: https://forum.unity.com/threads/unitywebrequest-post-url-jsondata-sending-broken-json.414708/
                     //The solution is to first create it as a UnityWebRequest.Put request and to then change it to Post We then specify that it's a json and magically, it now works!
 
-                    using UnityWebRequest getReq = UnityWebRequest.Put($"{url}/sdapi/v1/txt2img", JsonUtility.ToJson(txt2imgInput));
+                    using UnityWebRequest getReq = UnityWebRequest.Put($"{url}/sdapi/v1/img2img", JsonUtility.ToJson(img2imgInput));
                     {
                         getReq.method = "POST";
                         getReq.SetRequestHeader("Content-Type", "application/json");
 
-                        Debug.Log("SD: txt2img request Sent!");
+                        Debug.Log("SD: img2img request Sent!");
                         yield return getReq.SendWebRequest();
 
                         //Handle HTTP error
                         if (getReq.result != UnityWebRequest.Result.Success)
                         {
-                            Debug.Log($"SD: txt2img request Failed: {getReq.result} {getReq.error}");
+                            Debug.Log($"SD: img2img request Failed: {getReq.result} {getReq.error}");
                         }
                         //Handle successful HTTP request
                         else
                         {
-                            Debug.Log("SD: txt2img request Complete!");
-                            // Access the response data from getReq.downloadHandler
-                            //Task<Texture2D[]> task = GetTexturesFromtxt2imgAsync(getReq.downloadHandler.text, txt2imgInput.rotate180);
+                            Debug.Log("SD: img2img request Complete!");
+                            //Task<Texture2D[]> task = GetTexturesFromimg2imgAsync(getReq.downloadHandler.text, img2imgInput.rotate180);
                             //yield return new WaitUntil(() => task.IsCompleted);
                             //textures = task.Result;
-                            textures = GetTexturesFromtxt2img(getReq.downloadHandler.text, txt2imgInput.rotate180);
+                            textures = GetTexturesFromimg2img(getReq.downloadHandler.text, img2imgInput.rotate180);
 
                             SDFunctions.ApplyTexture2dToOutputs(textures, renderers, responseEvents);
                         }
                     }
 
-                    if (txt2imgInput.useExtra)
+                    if (img2imgInput.useExtra)
                     {
-                        yield return Img2Extras.ProcessExtraCoroutine(txt2imgInput.extraInput, textures, renderers, responseEvents);
+                        yield return Img2Extras.ProcessExtraCoroutine(img2imgInput.extraInput, textures, renderers, responseEvents);
                     }
                 }
             }
             yield return null;
         }
 
-
         //Convert a json string to Sprite
-        private static Texture2D[] GetTexturesFromtxt2img(string json, bool rotate180)
+        private static Texture2D[] GetTexturesFromimg2img(string json, bool rotate180)
         {
             List<Texture2D> texture2Ds = new List<Texture2D>();
-            Txt2ImgContainer container = JsonUtility.FromJson<Txt2ImgContainer>(json);
+            Img2ImgContainer container = JsonUtility.FromJson<Img2ImgContainer>(json);
 
             for (int i = 0; i < container.images.Length; i++)
             {
@@ -149,6 +149,7 @@ namespace StableDiffusion
                 Texture2D tex = new Texture2D(1, 1);
                 tex.LoadImage(b64_bytes);
 
+                //if (StableDiffusionConfig.instance.fixRotation)
                 if (rotate180)
                 {
                     //reverse the array to rotate the image 180° as it is otherwise imported upside down
@@ -164,9 +165,9 @@ namespace StableDiffusion
         }
 
         //Convert a json string to Sprite
-        private static async Task<Texture2D[]> GetTexturesFromtxt2imgAsync(string json, bool rotate180)
+        private static async Task<Texture2D[]> GetTexturesFromimg2imgAsync(string json, bool rotate180)
         {
-            Txt2ImgContainer container = JsonUtility.FromJson<Txt2ImgContainer>(json);
+            Img2ImgContainer container = JsonUtility.FromJson<Img2ImgContainer>(json);
             Texture2D[] texture2Ds = new Texture2D[container.images.Length];
 
             for (int i = 0; i < texture2Ds.Length; i++)
@@ -195,13 +196,12 @@ namespace StableDiffusion
             }
             return texture2Ds;
         }
-
-
         #endregion
 
         #region Return Containers
+
         [System.Serializable]
-        private class Txt2ImgContainer
+        private class Img2ImgContainer
         {
             public string[] images;
             public string parameters;
@@ -212,10 +212,10 @@ namespace StableDiffusion
 
         private void OnValidate()
         {
-            if (txt2imgInput != null)
+            if (img2imgInput != null)
             {
                 //Adjust the size of the renderer array to the new batch count and size.
-                int imgCount = txt2imgInput.n_iter * txt2imgInput.batch_size;
+                int imgCount = img2imgInput.n_iter * img2imgInput.batch_size;
                 if (targetRenderers.Length != imgCount)
                 {
                     Renderer[] newRendererArray = new Renderer[imgCount];
@@ -239,15 +239,22 @@ namespace StableDiffusion
             }
         }
     }
-
     [System.Serializable]
-    public class Txt2ImgPayload
+    public class Img2ImgPayload
     {
         #region Default Settings
+        [Tooltip("Images to convert via img2img")]
+        public Texture2D[] images;
+        [HideInInspector, SerializeField]
+        private string[] init_images = new string[0];
+
         [TextArea(1, 50)]
         public string prompt;
         [Label("Negative Prompt"), AllowNesting, TextArea(1, 50), Tooltip("exclude this prompt from the generation")]
         public string negative_prompt;
+
+        public int resize_mode = 0;
+
 
         [Label("Sampling Method"), AllowNesting, Tooltip("Which algorithm to use to produce the image")]
         public SamplerMethods samplerMethod = SamplerMethods.Euler_a;
@@ -277,33 +284,13 @@ namespace StableDiffusion
 
         [Tooltip("-1 for random seed every time")]
         public int seed = -1;
+
+        [Range(0, 1), Tooltip("Determines how little respect the algorithm should have for image's content. At 0, nothing will change, and at 1 you'll get an unrelated image. With values below 1.0, processing will take less steps than the Sampling Steps slider specifies.")]
+        public float denoising_strength = 0.75f;
         #endregion
 
         [Label("Rotate by 180°"), AllowNesting, Tooltip("Should we rotate the resulting image(s) by 180°? This is a bugfix since the images are loaded upside down into unity.")]
         public bool rotate180 = false;
-
-        [Space(20)]
-
-        #region High Resolution
-        [Label("Use Upscaling"), AllowNesting, Tooltip("Use a two step process to partially create an image at smaller resolution, upscale, and then improve details in it without changing composition)")]
-        public bool enable_hr = false;
-
-        [HideInInspector, SerializeField]
-        private string hr_upscaler = "None";
-        [ShowIf("enable_hr"), Label("Upscaler"), AllowNesting]
-        public UpscalerModels upscalerModel = UpscalerModels.Latent;
-
-        [ShowIf("enable_hr"), Label("Hires steps"), AllowNesting, Range(0, 150), Tooltip("Number of sampling steps for upscaled picture. If 0, use same as for original")]
-        public float hr_second_pass_steps = 0;
-
-        [ShowIf("enable_hr"), Label("Denoising Strength"), AllowNesting, Range(0, 1), Tooltip("Determines how little respect the algorithm should have for image's content. at 0, nothing will change, and at 1 you'll get an unrelated image. With values below 1.0, processing will take less steps than the sampling steps slider specifies")]
-        public float denoising_strength = 0.7f;
-
-        [ShowIf("enable_hr"), Label("Upscale by"), AllowNesting, Range(1, 4), Tooltip("Adjusts the size of the image by multiplying the original width and height by the selected value. Ignored if either Resize width to or Resize height to are non-zero")]
-        public float hr_scale = 2;
-        #endregion
-
-        
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
@@ -314,8 +301,9 @@ namespace StableDiffusion
         [HideInInspector] //hidden for now until API bugs are fixed
         public ExtrasPayload extraInput = new ExtrasPayload();
         #endregion
+        
 
-        public Txt2ImgPayload()
+        public Img2ImgPayload()
         {
             Initialize();
         }
@@ -323,14 +311,17 @@ namespace StableDiffusion
         public void Initialize()
         {
             //set the upscaler string to the dropdown enum
-            hr_upscaler = upscalerModel.GetStringValue();
-            sampler_name = samplerMethod.GetStringValue();
+            //hr_upscaler = upscalerModel.GetStringValue();
+            //sampler_name = samplerMethod.GetStringValue();
+
+            if (images != null)
+                init_images = SDFunctions.GetStringsFromTextures(images);
         }
 
         //Returns a copy of this class
-        public Txt2ImgPayload Copy()
+        public Img2ImgPayload Copy()
         {
-            return (Txt2ImgPayload)this.MemberwiseClone();
+            return (Img2ImgPayload)this.MemberwiseClone();
         }
     }
 }
