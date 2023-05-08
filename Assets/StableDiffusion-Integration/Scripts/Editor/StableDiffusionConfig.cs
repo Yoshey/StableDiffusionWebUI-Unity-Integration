@@ -3,7 +3,8 @@ using UnityEditor;
 
 namespace StableDiffusion
 {
-    [CreateAssetMenu(fileName = "SD Config", menuName = "Stable Diffusion/Config File", order = 1), ExecuteInEditMode]
+    [FilePath("ProjectSettings/StableDiffusionSettings.asset", FilePathAttribute.Location.ProjectFolder)]
+    [CreateAssetMenu(fileName = "SD Config", menuName = "Stable Diffusion/Config File", order = 1)]
     public class StableDiffusionConfig : ScriptableSingleton<StableDiffusionConfig>
     {
         [Header("Login")]
@@ -25,5 +26,10 @@ namespace StableDiffusion
         //public bool ABG_extension = false;
         public bool stable_diffusion_webui_rembg = false;
         #endregion
+
+        private void Awake()
+        {
+            Resources.Load(typeof(StableDiffusionConfig).Name);
+        }
     }
 }

@@ -126,7 +126,7 @@ namespace StableDiffusion
                         }
                     }
 
-                    if (img2imgInput.useExtra)
+                    if (StableDiffusionConfig.instance.stable_diffusion_webui_rembg && img2imgInput.useExtra)
                     {
                         yield return Img2Extras.ProcessExtraCoroutine(img2imgInput.extraInput, textures, renderers, responseEvents);
                     }

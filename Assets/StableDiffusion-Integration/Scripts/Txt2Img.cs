@@ -125,7 +125,7 @@ namespace StableDiffusion
                         }
                     }
 
-                    if (txt2imgInput.useExtra)
+                    if (StableDiffusionConfig.instance.stable_diffusion_webui_rembg && txt2imgInput.useExtra)
                     {
                         yield return Img2Extras.ProcessExtraCoroutine(txt2imgInput.extraInput, textures, renderers, responseEvents);
                     }
@@ -303,7 +303,7 @@ namespace StableDiffusion
         public float hr_scale = 2;
         #endregion
 
-        
+
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
