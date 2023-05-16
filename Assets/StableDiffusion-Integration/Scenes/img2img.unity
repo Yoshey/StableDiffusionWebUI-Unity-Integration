@@ -223,11 +223,13 @@ MonoBehaviour:
     denoising_strength: 0.75
     rotate180: 1
     useExtra: 0
+    showSteps: 1
     extraInput:
       image: 
       resize_mode: 1
       upscaling_resize: 2
       upscaler_1: None
+    saveImageToFile: 0
   useRenderers: 1
   targetRenderers:
   - {fileID: 1259283259}
@@ -963,11 +965,13 @@ MonoBehaviour:
     denoising_strength: 0.75
     rotate180: 0
     useExtra: 0
+    showSteps: 1
     extraInput:
       image: 
       resize_mode: 1
       upscaling_resize: 2
       upscaler_1: None
+    saveImageToFile: 0
   useRenderers: 1
   targetRenderers:
   - {fileID: 1347639075}
@@ -1182,11 +1186,13 @@ MonoBehaviour:
     denoising_strength: 0.75
     rotate180: 0
     useExtra: 0
+    showSteps: 1
     extraInput:
       image: 
       resize_mode: 1
       upscaling_resize: 2
       upscaler_1: None
+    saveImageToFile: 0
   useRenderers: 1
   targetRenderers:
   - {fileID: 1329166681}
@@ -1228,11 +1234,13 @@ MonoBehaviour:
     denoising_strength: 0.7
     hr_scale: 2
     useExtra: 0
+    showSteps: 1
     extraInput:
       image: 
       resize_mode: 1
       upscaling_resize: 2
       upscaler_1: None
+    saveImageToFile: 0
   useRenderers: 1
   targetRenderers:
   - {fileID: 1329166681}

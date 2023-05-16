@@ -8,22 +8,23 @@ using System;
 using NaughtyAttributes;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace StableDiffusion
 {
     public class Img2Img : MonoBehaviour
     {
         [SerializeField, Label("Img2img Input")]
-        protected Img2ImgPayload img2imgInput = new Img2ImgPayload();
+        private Img2ImgPayload img2imgInput = new Img2ImgPayload();
 
         [Space(10)]
         public bool useRenderers = true;
         [ShowIf("useRenderers"), SerializeField]
-        private Renderer[] targetRenderers = new Renderer[1];
+        public Renderer[] targetRenderers = new Renderer[1];
 
         public bool useEvents = false;
         [ShowIf("useEvents"), SerializeField]
-        private UnityEventTexture2D[] ResponseEvents;
+        public UnityEventTexture2D[] ResponseEvents;
 
         #region Functions
         //Generate images via the instance's inspector settings
@@ -120,13 +121,14 @@ namespace StableDiffusion
                             //Task<Texture2D[]> task = GetTexturesFromimg2imgAsync(getReq.downloadHandler.text, img2imgInput.rotate180);
                             //yield return new WaitUntil(() => task.IsCompleted);
                             //textures = task.Result;
-                            textures = GetTexturesFromimg2img(getReq.downloadHandler.text, img2imgInput.rotate180);
+                            textures = GetTexturesFromimg2img(getReq.downloadHandler.text, img2imgInput);
 
-                            SDFunctions.ApplyTexture2dToOutputs(textures, renderers, responseEvents);
+                            if (!img2imgInput.useExtra || (img2imgInput.showExtra && img2imgInput.useExtra && img2imgInput.showSteps)) //set texture to output if we are not using extra, or if we are using extra and showing the progress steps
+                                SDFunctions.ApplyTexture2dToOutputs(textures, renderers, responseEvents);
                         }
                     }
 
-                    if (StableDiffusionConfig.instance.stable_diffusion_webui_rembg && img2imgInput.useExtra)
+                    if (img2imgInput.showExtra && img2imgInput.useExtra)
                     {
                         yield return Img2Extras.ProcessExtraCoroutine(img2imgInput.extraInput, textures, renderers, responseEvents);
                     }
@@ -136,7 +138,7 @@ namespace StableDiffusion
         }
 
         //Convert a json string to Sprite
-        private static Texture2D[] GetTexturesFromimg2img(string json, bool rotate180)
+        private static Texture2D[] GetTexturesFromimg2img(string json, Img2ImgPayload input)
         {
             List<Texture2D> texture2Ds = new List<Texture2D>();
             Img2ImgContainer container = JsonUtility.FromJson<Img2ImgContainer>(json);
@@ -145,12 +147,23 @@ namespace StableDiffusion
             {
                 byte[] b64_bytes = Convert.FromBase64String(container.images[i]); //convert theimage's strings to bytes.
 
+                if (input.saveImageToFile)
+                {
+                    string path = $"{Application.persistentDataPath}/StableDiffusion/";
+                    if (!Directory.Exists(path))
+                        Directory.CreateDirectory(path);
+
+                    path += $"{DateTime.Now.ToString("yyyy-dd-M-HHmmss")}_{i}.png";
+                    Debug.Log($"SD: Saving image to {path}");
+                    File.WriteAllBytes(path, b64_bytes);
+                }
+
                 //load bytes into a new texture
                 Texture2D tex = new Texture2D(1, 1);
                 tex.LoadImage(b64_bytes);
 
                 //if (StableDiffusionConfig.instance.fixRotation)
-                if (rotate180)
+                if (input.rotate180)
                 {
                     //reverse the array to rotate the image 180° as it is otherwise imported upside down
                     Color[] pix = tex.GetPixels();
@@ -231,9 +244,22 @@ namespace StableDiffusion
                 {
                     UnityEventTexture2D[] newEventsArray = new UnityEventTexture2D[imgCount];
                     for (int i = 0; i < imgCount; i++)
+                    {
                         if (ResponseEvents.Length > i)
+                        {
                             if (ResponseEvents[i] != null)
+                            {
                                 newEventsArray[i] = ResponseEvents[i]; //reassign the previous events to the adjusted event length so the stored information isn't lost
+                            }
+                        }
+                            
+                        //If the array is growing, assign the previous event's settings to the newly extended event.
+                        if (i > 0 && ResponseEvents[i - 1] != null && newEventsArray[i] == null)
+                        {
+                            newEventsArray[i] = ResponseEvents[i - 1];
+                        }
+                    }
+                        
                     ResponseEvents = newEventsArray;
                 }
             }
@@ -294,14 +320,17 @@ namespace StableDiffusion
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
-        private bool showExtra { get { return StableDiffusionConfig.instance.stable_diffusion_webui_rembg; } }
+        public bool showExtra { get { return StableDiffusionConfig.instance.stable_diffusion_webui_rembg; } }
         [Label("Remove Background"), AllowNesting, ShowIf("showExtra")]
         public bool useExtra = false;
+        [Label("Show Progress"), AllowNesting, ShowIf("useExtra")]
+        public bool showSteps = true;
         //[SerializeField, ShowIf("useExtra"), Label("Extra Input"), AllowNesting]
         [HideInInspector] //hidden for now until API bugs are fixed
         public ExtrasPayload extraInput = new ExtrasPayload();
         #endregion
-        
+
+        public bool saveImageToFile = false;
 
         public Img2ImgPayload()
         {
