@@ -14,8 +14,8 @@ namespace StableDiffusion
 {
     public class Txt2Img : MonoBehaviour
     {
-        [SerializeField, Label("Txt2img Input")] 
-        private Txt2ImgPayload txt2imgInput = new Txt2ImgPayload();
+        [SerializeField, Label("Txt2img Input")]
+        protected Txt2ImgPayload txt2imgInput = new Txt2ImgPayload();
 
         [Space(10)]
         public bool useRenderers = true;
@@ -210,7 +210,7 @@ namespace StableDiffusion
 
         #endregion
 
-        private void OnValidate()
+        protected virtual void OnValidate()
         {
             if (txt2imgInput != null)
             {

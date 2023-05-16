@@ -14,7 +14,7 @@ namespace StableDiffusion
     public class Img2Img : MonoBehaviour
     {
         [SerializeField, Label("Img2img Input")]
-        private Img2ImgPayload img2imgInput = new Img2ImgPayload();
+        protected Img2ImgPayload img2imgInput = new Img2ImgPayload();
 
         [Space(10)]
         public bool useRenderers = true;
@@ -210,7 +210,7 @@ namespace StableDiffusion
 
         #endregion
 
-        private void OnValidate()
+        protected virtual void OnValidate()
         {
             if (img2imgInput != null)
             {
