@@ -322,7 +322,16 @@ namespace StableDiffusion
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
-        public bool showExtra { get { return Img2Img.configInstance.stable_diffusion_webui_rembg; } }
+        public bool showExtra
+        {
+            get
+            {
+                if (Txt2Img.configInstance != null)
+                    return Txt2Img.configInstance.stable_diffusion_webui_rembg;
+                else
+                    return true;
+            }
+        }
         [Label("Remove Background"), AllowNesting, ShowIf("showExtra")]
         public bool useExtra = false;
         [Label("Show Progress"), AllowNesting, ShowIf("useExtra")]
