@@ -12,9 +12,9 @@ using System.IO;
 
 namespace StableDiffusion
 {
-    public class Img2Img : MonoBehaviour
+    public class Img2Img : SDBase
     {
-        [SerializeField, Label("Img2img Input")]
+        [SerializeField, Label("Img2img Input"), Space(10)]
         private Img2ImgPayload img2imgInput = new Img2ImgPayload();
 
         [Space(10)]
@@ -61,7 +61,7 @@ namespace StableDiffusion
 
         public static IEnumerator GenerateImagesCoroutine(Img2ImgPayload img2imgInput, Renderer[] renderers, UnityEventTexture2D[] responseEvents)
         {
-            if (StableDiffusionConfig.instance == null)
+            if (configInstance == null)
             {
                 Debug.LogError("Stable Diffusion Config doesn't exist! Please create one.");
                 yield break;
@@ -69,11 +69,11 @@ namespace StableDiffusion
 
             WWWForm loginForm = new WWWForm();
 
-            string url = $"http://{StableDiffusionConfig.instance.username}:{StableDiffusionConfig.instance.password}@{StableDiffusionConfig.instance.address}";
+            string url = $"http://{configInstance.username}:{configInstance.password}@{configInstance.address}";
 
-            loginForm.AddField("username", StableDiffusionConfig.instance.username);
-            loginForm.AddField("password", StableDiffusionConfig.instance.password);
-            using (UnityWebRequest loginRequest = UnityWebRequest.Post($"http://{StableDiffusionConfig.instance.address}/login/", loginForm))
+            loginForm.AddField("username", configInstance.username);
+            loginForm.AddField("password", configInstance.password);
+            using (UnityWebRequest loginRequest = UnityWebRequest.Post($"http://{configInstance.address}/login/", loginForm))
             {
                 yield return loginRequest.SendWebRequest();
 
@@ -223,8 +223,10 @@ namespace StableDiffusion
 
         #endregion
 
-        protected virtual void OnValidate()
+        protected override void OnValidate()
         {
+            base.OnValidate();
+
             if (img2imgInput != null)
             {
                 //Adjust the size of the renderer array to the new batch count and size.
@@ -320,7 +322,7 @@ namespace StableDiffusion
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
-        public bool showExtra { get { return StableDiffusionConfig.instance.stable_diffusion_webui_rembg; } }
+        public bool showExtra { get { return Img2Img.configInstance.stable_diffusion_webui_rembg; } }
         [Label("Remove Background"), AllowNesting, ShowIf("showExtra")]
         public bool useExtra = false;
         [Label("Show Progress"), AllowNesting, ShowIf("useExtra")]

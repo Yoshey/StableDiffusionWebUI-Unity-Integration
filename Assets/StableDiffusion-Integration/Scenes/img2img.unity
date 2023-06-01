@@ -202,6 +202,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4dd664a2cb96044b8c6917d8bc98de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _config: {fileID: 11400000, guid: 78ce1067b7109a349832ef64d712aafa, type: 2}
   img2imgInput:
     images:
     - {fileID: 2800000, guid: 603c27fe4275e984887cae70a2e477d4, type: 3}
@@ -944,6 +945,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4dd664a2cb96044b8c6917d8bc98de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _config: {fileID: 11400000, guid: 78ce1067b7109a349832ef64d712aafa, type: 2}
   img2imgInput:
     images:
     - {fileID: 2800000, guid: 603c27fe4275e984887cae70a2e477d4, type: 3}
@@ -1166,6 +1168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4dd664a2cb96044b8c6917d8bc98de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _config: {fileID: 11400000, guid: 78ce1067b7109a349832ef64d712aafa, type: 2}
   img2imgInput:
     images: []
     init_images: []
@@ -1212,6 +1215,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615c5ba30c0a67046815ee3688e8aa9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _config: {fileID: 11400000, guid: 78ce1067b7109a349832ef64d712aafa, type: 2}
   txt2imgInput:
     prompt: fox
     negative_prompt: 

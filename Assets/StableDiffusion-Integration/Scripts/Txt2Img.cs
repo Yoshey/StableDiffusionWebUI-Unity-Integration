@@ -13,9 +13,9 @@ using System.IO;
 
 namespace StableDiffusion
 {
-    public class Txt2Img : MonoBehaviour
+    public class Txt2Img : SDBase
     {
-        [SerializeField, Label("Txt2img Input")] 
+        [SerializeField, Label("Txt2img Input"), Space(10)]
         protected Txt2ImgPayload txt2imgInput = new Txt2ImgPayload();
 
         [Space(10)]
@@ -58,7 +58,7 @@ namespace StableDiffusion
 
         public static IEnumerator GenerateImagesCoroutine(Txt2ImgPayload txt2imgInput, Renderer[] renderers, UnityEventTexture2D[] responseEvents)
         {
-            if (StableDiffusionConfig.instance == null)
+            if (configInstance == null)
             {
                 Debug.LogError("Stable Diffusion Config doesn't exist! Please create one.");
                 yield break;
@@ -66,11 +66,11 @@ namespace StableDiffusion
 
             WWWForm loginForm = new WWWForm();
 
-            string url = $"http://{StableDiffusionConfig.instance.username}:{StableDiffusionConfig.instance.password}@{StableDiffusionConfig.instance.address}";
+            string url = $"http://{configInstance.username}:{configInstance.password}@{configInstance.address}";
 
-            loginForm.AddField("username", StableDiffusionConfig.instance.username);
-            loginForm.AddField("password", StableDiffusionConfig.instance.password);
-            using (UnityWebRequest loginRequest = UnityWebRequest.Post($"http://{StableDiffusionConfig.instance.address}/login/", loginForm))
+            loginForm.AddField("username", configInstance.username);
+            loginForm.AddField("password", configInstance.password);
+            using (UnityWebRequest loginRequest = UnityWebRequest.Post($"http://{configInstance.address}/login/", loginForm))
             {
                 yield return loginRequest.SendWebRequest();
 
@@ -135,6 +135,96 @@ namespace StableDiffusion
             }
             yield return null;
         }
+
+        public async static Task<Texture2D[]> GenerateImagesTask(Txt2ImgPayload txt2imgInput)
+        {
+            if (configInstance == null)
+            {
+                Debug.LogError("Stable Diffusion Config doesn't exist! Please create one.");
+                return null;
+            }
+
+            WWWForm loginForm = new WWWForm();
+
+            string url = $"http://{configInstance.username}:{configInstance.password}@{configInstance.address}";
+
+            loginForm.AddField("username", configInstance.username);
+            loginForm.AddField("password", configInstance.password);
+            using (UnityWebRequest loginRequest = UnityWebRequest.Post($"http://{configInstance.address}/login/", loginForm))
+            {
+                UnityWebRequestAsyncOperation loginTask = loginRequest.SendWebRequest();
+
+                while (!loginTask.isDone)
+                    await Task.Yield();
+
+                if (loginRequest.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.Log(loginRequest.error);
+                    return null;
+                }
+                else
+                {
+                    Debug.Log("SD: Login successful!");
+
+
+                    txt2imgInput.Initialize(); //update hidden values to their true values
+                    Texture2D[] textures = new Texture2D[0];
+
+                    //Send request to server to generate a stable diffusion image
+                    //Note:
+                    //Normally we would be using Unity's UnityWebRequest.Post command like this:
+                    //using (UnityWebRequest getReq = UnityWebRequest.Post($"http://{username}:{password}@141.100.233.171:4000/sdapi/v1/txt2img", postData))
+                    //however, "For some reason UnityWebRequest applies URL encoding to POST message payloads." as seen here: https://forum.unity.com/threads/unitywebrequest-post-url-jsondata-sending-broken-json.414708/
+                    //The solution is to first create it as a UnityWebRequest.Put request and to then change it to Post We then specify that it's a json and magically, it now works!
+
+                    using UnityWebRequest getReq = UnityWebRequest.Put($"{url}/sdapi/v1/txt2img", JsonUtility.ToJson(txt2imgInput));
+                    {
+                        getReq.method = "POST";
+                        getReq.SetRequestHeader("Content-Type", "application/json");
+
+                        Debug.Log("SD: txt2img request Sent!");
+                        UnityWebRequestAsyncOperation requestTask = getReq.SendWebRequest();
+
+                        while (!requestTask.isDone)
+                            await Task.Yield();
+
+                        //Handle HTTP error
+                        if (getReq.result != UnityWebRequest.Result.Success)
+                        {
+                            Debug.Log($"SD: txt2img request Failed: {getReq.result} {getReq.error}");
+                            return null;
+                        }
+                        //Handle successful HTTP request
+                        else
+                        {
+                            Debug.Log("SD: txt2img request Complete!");
+                            // Access the response data from getReq.downloadHandler
+                            //Task<Texture2D[]> task = GetTexturesFromtxt2imgAsync(getReq.downloadHandler.text, txt2imgInput.rotate180);
+                            //yield return new WaitUntil(() => task.IsCompleted);
+                            //textures = task.Result;
+                            textures = GetTexturesFromtxt2img(getReq.downloadHandler.text, txt2imgInput);
+                        }
+                    }
+
+                    if (txt2imgInput.showExtra && txt2imgInput.useExtra)
+                    {
+                        Texture2D[] processedTextures = new Texture2D[textures.Length];
+
+                        for(int i = 0; i < processedTextures.Length; i++)
+                        {
+                            processedTextures[i] = await Img2Extras.ProcessExtraTask(txt2imgInput.extraInput, textures[i]);
+                        }
+                        return processedTextures;
+                    }
+                    else
+                    {
+                        return textures;
+                    }
+                }
+            }
+        }
+
+
 
 
         //Convert a json string to Sprite
@@ -223,8 +313,10 @@ namespace StableDiffusion
 
         #endregion
 
-        protected virtual void OnValidate()
+        protected override void OnValidate()
         {
+            base.OnValidate();
+
             if (txt2imgInput != null)
             {
                 //Adjust the size of the renderer array to the new batch count and size.
@@ -330,7 +422,7 @@ namespace StableDiffusion
 
         #region Extras
         //this is currently kinda bugged in the API and requires the extension https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg to be installed. When sending a request to the extras API, it removes the background even if disabled. Needs to be fixed with updates in the future
-        public bool showExtra { get { return StableDiffusionConfig.instance.stable_diffusion_webui_rembg; } }
+        public bool showExtra { get { return Txt2Img.configInstance.stable_diffusion_webui_rembg; } }
         [Label("Remove Background"), AllowNesting, ShowIf("showExtra")]
         public bool useExtra = false;
         [Label("Show Progress"), AllowNesting, ShowIf("useExtra")]
